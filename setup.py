@@ -5,13 +5,13 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="BiologyTools",
-    version="0.0.3",
+    version="0.0.4",
     author="CrossDark",
     author_email="liuhanbo333@icloud.com",
     description="CrossDark's biology tool",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/CrossDark/CrossDarkBiology",
+    url="https://github.com/CrossDark/BiologyTools",
     packages=setuptools.find_packages(),
     install_requires=[
         'numpy',
