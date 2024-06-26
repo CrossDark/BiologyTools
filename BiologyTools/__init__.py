@@ -11,13 +11,13 @@ import math
 import copy
 
 
-class Video:
+class CellSpeedMeasure:
     Datas = List[Dict[int, Tuple[float, float, float, float]]]
 
     def __init__(self, path: str, cache: str):
         self.value = 0
         self.lost = 0
-        self.stream: Video.Datas = []
+        self.stream: CellSpeedMeasure.Datas = []
         self.image_paths = []
         self.path = path
         self.cache = cache

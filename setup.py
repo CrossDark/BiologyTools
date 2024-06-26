@@ -4,7 +4,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name="CrossDarkBiology",
+    name="BiologyTools",
     version="0.0.3",
     author="CrossDark",
     author_email="liuhanbo333@icloud.com",
@@ -22,7 +22,7 @@ setuptools.setup(
     ],
     entry_points={
         'console_scripts': [
-            'CDBio-Video=CrossDarkBiology.Video.yolo:main'
+            'Biology-Video=Biology.Video.yolo:main'
         ],
     },
     classifiers=[
