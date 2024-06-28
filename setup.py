@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="BiologyTools",
-    version="0.0.4",
+    version="0.0.5",
     author="CrossDark",
     author_email="liuhanbo333@icloud.com",
     description="CrossDark's biology tool",
@@ -30,5 +30,8 @@ setuptools.setup(
         'Programming Language :: Python :: 3.12',
         'License :: OSI Approved :: MIT License',
         "Operating System :: OS Independent"
-    ]
+    ],
+    package_data={
+        'BiologyTools': ['model/*'],  # 替换为你的包名和静态文件路径
+    },
 )

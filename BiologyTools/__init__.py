@@ -9,15 +9,19 @@ import os
 import glob
 import math
 import copy
+import ruamel.yaml
+import re
 
 
-class CellSpeedMeasure:
+class CytoplasmicCirculationSpeedMeasure:
     Datas = List[Dict[int, Tuple[float, float, float, float]]]
+    Setups = Dict[str, Union[list, str, Dict[str, Union[int, str]], int]]
+    Record = List[List[Union[float, str, int]]]
 
     def __init__(self, path: str, cache: str):
         self.value = 0
         self.lost = 0
-        self.stream: CellSpeedMeasure.Datas = []
+        self.stream: CytoplasmicCirculationSpeedMeasure.Datas = []
         self.image_paths = []
         self.path = path
         self.cache = cache
@@ -56,14 +60,17 @@ class CellSpeedMeasure:
         for i in YOLO(model).track(source=self.final, save=True, conf=0.05, iou=0.1):
             chloroplast = {}
             # 将ID与坐标转换成一个字典
-            for id_ in i.boxes.id.tolist():
-                for post in i.boxes.xyxy.tolist():
-                    chloroplast[int(id_)] = tuple(post)
+            try:  # 看看有没有哪帧识别不到
+                for id_ in i.boxes.id.tolist():
+                    for post in i.boxes.xyxy.tolist():
+                        chloroplast[int(id_)] = tuple(post)
+            except AttributeError:  # 数据可以作废了
+                lost += 1
             output_.append(chloroplast)
         self.stream = output_
         self.lost = lost
 
-    def output(self, path: str):
+    def save(self, path: str):
         with open(path, 'w', encoding='utf-8') as file:
             for flame in self.stream:
                 for id_, block in flame.items():
@@ -104,6 +111,21 @@ class CellSpeedMeasure:
             standard_deviation.append(numpy.std(numpy.array(distance)))
         return sum(distances) / len(distances), numpy.std(numpy.array(standard_deviation)), reliable, lost
 
+    def output(self, spread: int, interval: int) -> Record:  # 输出计算出的速率
+        out = []
+        xy = self.stream
+        part = len(self.stream) / spread
+        part1 = cycle([math.floor(part), math.ceil(part)])
+        part2 = copy.deepcopy(part1)
+        for index, k in enumerate([xy[i:i + next(part2)] for i in range(0, len(xy), next(part1))]):
+            info = os.path.splitext(os.path.basename(self.path))[0].split('-')
+            try:
+                result = self.analise(k, interval)
+            except ZeroDivisionError:
+                continue
+            out.append([str(result[0])] + list(info[:2] if len(info) == 2 else info[:1] + [0]) + [index + 1, result[3]])
+        return out
+
     def database(self, spread: int, interval: int, tables):
         xy = self.stream
         part = len(self.stream) / spread
@@ -134,21 +156,30 @@ class CellSpeedMeasure:
                 self.stream.append(posts)
 
     @classmethod
-    def exec(cls, path, operation: Dict[str, Union[str, Dict[str, Union[int, str]], int]]):
+    def exec(cls, path, operation: Setups) -> Record:
         video = cls(path, 'cache/')
         if '预处理' in operation:
             video.split_flame(operation['预处理']['间隔'])
             video.generate_video()
-            video.clean()
         if '模型' in operation:
             video.yolo(operation['模型'])
-        if '输出' in operation:
-            video.output(operation['输出'])
+        video.clean()
+        if '保存' in operation:
+            video.save(operation['保存'])
         if '加载' in operation:
             video.load(operation['加载'])
         if '数据库' in operation:
             video.database(operation['数据库']['分段'], operation['数据库']['分析间隔'], operation['数据库']['表格'])
+        if '输出' in operation:
+            return video.output(operation['输出']['分段'], operation['输出']['分析间隔'])
 
     @classmethod
-    def yaml(cls):
-        pass
+    def yaml(cls, setup: str) -> List[Record]:
+        with open(setup, encoding='utf-8') as file:
+            setups = ruamel.yaml.YAML(typ='safe').load(re.sub('<[^>]*>', '', file.read()))
+        out = []
+        for path in setups['文件']:
+            get = cls.exec(path=path, operation=setups)
+            if get is not None:
+                out += get
+        return out

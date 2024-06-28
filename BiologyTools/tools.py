@@ -27,7 +27,6 @@ class SQL:
         self.connect.close()
 
     def __add__(self, other: list):
-        print(other)
         self.cursor.execute(
             "INSERT INTO "
             + self.table
@@ -43,3 +42,17 @@ class SQL:
             self.cursor.execute(
                 f"INSERT INTO {self.table} (value,light) VALUES ('{v}','{self.info}');"
             )
+
+    @classmethod
+    def increase(cls, table):
+        def decorator(func):
+            def wrapper(*args, **kwargs):
+                with cls() as db:
+                    db.tables(table)
+                    # 调用原始函数
+                    for i in func(*args, **kwargs):
+                        print(i)
+
+            return wrapper
+
+        return decorator
