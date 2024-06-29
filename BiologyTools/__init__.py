@@ -1,7 +1,7 @@
 from itertools import cycle
 from moviepy.editor import ImageSequenceClip
 from ultralytics import YOLO
-from .tools import SQL
+from .tools import SQL, Colors
 from typing import List, Dict, Tuple, Union
 import numpy
 import av
@@ -14,6 +14,9 @@ import re
 
 
 class CytoplasmicCirculationSpeedMeasure:
+    """
+    胞质环流测速
+    """
     Datas = List[Dict[int, Tuple[float, float, float, float]]]
     Setups = Dict[str, Union[list, str, Dict[str, Union[int, str]], int]]
     Record = List[List[Union[float, str, int]]]
@@ -31,6 +34,20 @@ class CytoplasmicCirculationSpeedMeasure:
             'LightTemperature': 'value,temperature,light,part,wrong',
             'LightIntensity': 'value,light,number,part,wrong'
         }
+        self.out = []
+
+    def __str__(self):
+        out = ''
+        for i in self.out:
+            out += '-'.join([f'{item:.4f}' if isinstance(item, float) else str(item) for item in i]) + '\n'
+        return out
+
+    def __repr__(self):
+        return ''
+
+    def __getattr__(self, item) -> str:
+        Colors.print('我没做这个功能,要不然你自己做???', Colors.BLUE)
+        return '什么鬼?'
 
     def split_flame(self, sampling_rate: int = 1):  # 将视频拆分成帧(可设置间隔)
         if sampling_rate == 1:
@@ -123,7 +140,8 @@ class CytoplasmicCirculationSpeedMeasure:
                 result = self.analise(k, interval)
             except ZeroDivisionError:
                 continue
-            out.append([str(result[0])] + list(info[:2] if len(info) == 2 else info[:1] + [0]) + [index + 1, result[3]])
+            out.append([result[0]] + list(info[:2] if len(info) == 2 else info[:1] + [0]) + [index + 1, result[3]])
+        self.out = out
         return out
 
     def database(self, spread: int, interval: int, tables):
