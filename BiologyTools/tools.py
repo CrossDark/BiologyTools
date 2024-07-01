@@ -1,4 +1,6 @@
+import colorama
 import pymysql
+from .define import Record
 
 
 class SQL:
@@ -58,42 +60,22 @@ class SQL:
         return decorator
 
 
-class Colors:
-    # 前景色（文本颜色）
-    HEADER = '\033[95m'  # 紫色
-    OKBLUE = '\033[94m'  # 深蓝色
-    OKGREEN = '\033[92m'  # 绿色
-    OKYELLOW = '\033[93m'  # 黄色
-    WARNING = '\033[93m'  # 也是黄色
-    FAIL = '\033[91m'  # 红色
-    ENDC = '\033[0m'  # 重置为默认色
-    BOLD = '\033[1m'  # 加粗
-    UNDERLINE = '\033[4m'  # 下划线
+class Output:
+    @staticmethod
+    def records(records: Record):
+        """
+        将结果输出为一个好看的格式
+        :param records:
+        :return:
+        """
+        print(
+            f'{colorama.Style.BRIGHT}{colorama.Fore.WHITE}{colorama.Back.BLACK}{records[0][1]}-'
+            f'{records[0][2]}{colorama.Fore.RESET}{colorama.Back.RESET}'
+        )
+        print(f"{colorama.Fore.GREEN} 分段 {colorama.Fore.BLUE}  速率  {colorama.Fore.RED} 错误 {colorama.Fore.RESET}")
+        for i in records:
+            print(
+                f'{colorama.Fore.GREEN}{i[3]:-3d}  {colorama.Fore.BLUE}{i[0]:.4f} '
+                f' {colorama.Fore.RED}{i[4]}{colorama.Fore.RESET}'
+            )
 
-    # 前景色（更详细的颜色）
-    BLACK = '\033[30m'
-    RED = '\033[31m'
-    GREEN = '\033[32m'
-    YELLOW = '\033[33m'
-    BLUE = '\033[34m'
-    MAGENTA = '\033[35m'  # 紫色（洋红色）
-    CYAN = '\033[36m'  # 青色（浅蓝色）
-    WHITE = '\033[37m'
-
-    # 背景色
-    BGBLACK = '\033[40m'
-    BGRED = '\033[41m'
-    BGGREEN = '\033[42m'
-    BGYELLOW = '\033[43m'
-    BGBLUE = '\033[44m'
-    BGMAGENTA = '\033[45m'  # 紫色（洋红色）背景
-    BGCYAN = '\033[46m'  # 青色（浅蓝色）背景
-    BGWHITE = '\033[47m'
-
-    @classmethod
-    def generate(cls, text, color):
-        return f"{color}{text}{cls.ENDC}"
-
-    @classmethod
-    def print(cls, text, color):
-        print(f"{color}{text}{cls.ENDC}")

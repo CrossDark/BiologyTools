@@ -1,5 +1,7 @@
 av>=12.1.0
 moviepy>=1.0.3
-numpy>=2.0.0
-pymysql>=1.1.1
+numpy>=1.26.2
+pymysql>=1.1.0
 ultralytics>=8.2.42
+colorama>=0.4.6
+setuptools>=70.1.1

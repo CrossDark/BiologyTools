@@ -1,8 +1,10 @@
 from itertools import cycle
 from moviepy.editor import ImageSequenceClip
 from ultralytics import YOLO
-from .tools import SQL, Colors
-from typing import List, Dict, Tuple, Union
+from .tools import SQL
+from typing import List, Dict, Tuple, Union, Callable
+from .define import Datas, Setups, Record
+import colorama
 import numpy
 import av
 import os
@@ -17,9 +19,6 @@ class CytoplasmicCirculationSpeedMeasure:
     """
     胞质环流测速
     """
-    Datas = List[Dict[int, Tuple[float, float, float, float]]]
-    Setups = Dict[str, Union[list, str, Dict[str, Union[int, str]], int]]
-    Record = List[List[Union[float, str, int]]]
 
     def __init__(self, path: str, cache: str):
         self.value = 0
@@ -35,6 +34,7 @@ class CytoplasmicCirculationSpeedMeasure:
             'LightIntensity': 'value,light,number,part,wrong'
         }
         self.out = []
+        colorama.init()
 
     def __str__(self):
         out = ''
@@ -43,13 +43,18 @@ class CytoplasmicCirculationSpeedMeasure:
         return out
 
     def __repr__(self):
-        return ''
+        return '胞质环流速率识别'
 
-    def __getattr__(self, item) -> str:
-        Colors.print('我没做这个功能,要不然你自己做???', Colors.BLUE)
-        return '什么鬼?'
+    def __getattr__(self, item) -> Callable:
+        print(colorama.Fore.RED + '我没做这个功能,要不然你自己做???' + colorama.Fore.RESET)
+        return lambda: '什么鬼?'
 
-    def split_flame(self, sampling_rate: int = 1):  # 将视频拆分成帧(可设置间隔)
+    def split_flame(self, sampling_rate: int = 1):
+        """
+        将视频拆分成帧(可设置间隔)
+        :param sampling_rate:
+        :return:
+        """
         if sampling_rate == 1:
             self.final = self.path
             return
@@ -63,6 +68,11 @@ class CytoplasmicCirculationSpeedMeasure:
                 image.save(image_path)
 
     def generate_video(self, fps: int = 25):
+        """
+        将被拆分成帧的视频间隔取帧重新生成视频
+        :param fps:
+        :return:
+        """
         if self.final == self.path:  # 说明视频无需处理
             return
         # 通过图片生成视频
@@ -72,6 +82,11 @@ class CytoplasmicCirculationSpeedMeasure:
         clip.write_videofile(self.final, codec='libx264')  # 写入视频文件，指定编码器为libx264
 
     def yolo(self, model: str):
+        """
+        通过YOLOv8识别叶绿体并导出坐标,格式见.define.Datas
+        :param model:
+        :return:
+        """
         lost = 0
         output_ = []
         for i in YOLO(model).track(source=self.final, save=True, conf=0.05, iou=0.1):
@@ -88,6 +103,18 @@ class CytoplasmicCirculationSpeedMeasure:
         self.lost = lost
 
     def save(self, path: str):
+        """
+        保存识别的叶绿体坐标:
+        格式:
+            ID:X1-Y1-X2-Y2  ……
+            ……
+        例如:
+            0:0.0-0.0-3.0-0.0  1:0.0-0.0-0.0-0.0
+            0:1.0-1.0-4.0-0.0  1:1.0-1.0-1.0-1.0
+            0:3.0-3.0-5.0-0.0  1:3.0-3.0-3.0-3.0
+        :param path:
+        :return:
+        """
         with open(path, 'w', encoding='utf-8') as file:
             for flame in self.stream:
                 for id_, block in flame.items():
@@ -95,6 +122,10 @@ class CytoplasmicCirculationSpeedMeasure:
                 file.write('\n')
 
     def clean(self):
+        """
+        清除cache/内的所有文件(主要是视频预处理的图片和视频)
+        :return:
+        """
         # 使用glob模块列出目录下的所有文件
         for filename in glob.glob(os.path.join(self.cache, '*')):
             try:
@@ -102,10 +133,17 @@ class CytoplasmicCirculationSpeedMeasure:
                 if os.path.isfile(filename) or os.path.islink(filename):
                     os.unlink(filename)  # 删除文件
             except Exception as e:
-                print(f'Error deleting {filename}: {e}')
+                print(f'{colorama.Fore.RED}Error deleting {filename}: {e}{colorama.Fore.RESET}')
 
     @staticmethod
     def analise(datas: Datas, interval=1, reliable_num=10) -> Tuple[float, float, bool, int]:
+        """
+        识别叶绿体运动速率
+        :param datas:
+        :param interval:
+        :param reliable_num:
+        :return:
+        """
         distances = []  # 存储每帧的平均距离
         standard_deviation = []  # 存储每帧方差
         reliable = True  # 结果是否可靠
@@ -128,13 +166,18 @@ class CytoplasmicCirculationSpeedMeasure:
             standard_deviation.append(numpy.std(numpy.array(distance)))
         return sum(distances) / len(distances), numpy.std(numpy.array(standard_deviation)), reliable, lost
 
-    def output(self, spread: int, interval: int) -> Record:  # 输出计算出的速率
+    def output(self, spread: int, interval: int) -> Record:
+        """
+        分段计算速率与其它相关信息并输出至目标文件
+        :param spread:
+        :param interval:
+        :return:
+        """
         out = []
-        xy = self.stream
         part = len(self.stream) / spread
         part1 = cycle([math.floor(part), math.ceil(part)])
         part2 = copy.deepcopy(part1)
-        for index, k in enumerate([xy[i:i + next(part2)] for i in range(0, len(xy), next(part1))]):
+        for index, k in enumerate([self.stream[i:i + next(part2)] for i in range(0, len(self.stream), next(part1))]):
             info = os.path.splitext(os.path.basename(self.path))[0].split('-')
             try:
                 result = self.analise(k, interval)
@@ -145,6 +188,13 @@ class CytoplasmicCirculationSpeedMeasure:
         return out
 
     def database(self, spread: int, interval: int, tables):
+        """
+        分段计算速率与其它相关信息并录入数据库
+        :param spread:
+        :param interval:
+        :param tables:
+        :return:
+        """
         xy = self.stream
         part = len(self.stream) / spread
         part1 = cycle([math.floor(part), math.ceil(part)])
@@ -163,6 +213,11 @@ class CytoplasmicCirculationSpeedMeasure:
                       + [index + 1, result[3]])
 
     def load(self, file):
+        """
+        加载保存在.txt文件中的叶绿体坐标数据
+        :param file:
+        :return:
+        """
         with open(file, 'r') as datas:
             for flame in datas:
                 posts = {}
@@ -175,6 +230,12 @@ class CytoplasmicCirculationSpeedMeasure:
 
     @classmethod
     def exec(cls, path, operation: Setups) -> Record:
+        """
+        根据输入的配置识别叶绿体运动速率
+        :param path:
+        :param operation:
+        :return:
+        """
         video = cls(path, 'cache/')
         if '预处理' in operation:
             video.split_flame(operation['预处理']['间隔'])
@@ -192,7 +253,12 @@ class CytoplasmicCirculationSpeedMeasure:
             return video.output(operation['输出']['分段'], operation['输出']['分析间隔'])
 
     @classmethod
-    def yaml(cls, setup: str) -> List[Record]:
+    def yaml(cls, setup: str) -> Record:
+        """
+        通过.yaml配置文件运行程序
+        :param setup:
+        :return:
+        """
         with open(setup, encoding='utf-8') as file:
             setups = ruamel.yaml.YAML(typ='safe').load(re.sub('<[^>]*>', '', file.read()))
         out = []

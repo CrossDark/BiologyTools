@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="BiologyTools",
-    version="0.0.5",
+    version="0.0.7",
     author="CrossDark",
     author_email="liuhanbo333@icloud.com",
     description="CrossDark's biology tool",
