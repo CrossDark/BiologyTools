@@ -3,7 +3,7 @@ from moviepy.editor import ImageSequenceClip
 from ultralytics import YOLO
 from .tools import SQL
 from typing import List, Dict, Tuple, Union, Callable
-from .define import Datas, Setups, Record
+from .define import Datas, Setups, Record, Result
 import colorama
 import numpy
 import av
@@ -13,6 +13,10 @@ import math
 import copy
 import ruamel.yaml
 import re
+import pathlib
+
+
+base_path = pathlib.Path(__file__).resolve().parent
 
 
 class CytoplasmicCirculationSpeedMeasure:
@@ -23,7 +27,7 @@ class CytoplasmicCirculationSpeedMeasure:
     def __init__(self, path: str, cache: str):
         self.value = 0
         self.lost = 0
-        self.stream: CytoplasmicCirculationSpeedMeasure.Datas = []
+        self.stream: Datas = []
         self.image_paths = []
         self.path = path
         self.cache = cache
@@ -136,7 +140,7 @@ class CytoplasmicCirculationSpeedMeasure:
                 print(f'{colorama.Fore.RED}Error deleting {filename}: {e}{colorama.Fore.RESET}')
 
     @staticmethod
-    def analise(datas: Datas, interval=1, reliable_num=10) -> Tuple[float, float, bool, int]:
+    def analise(datas: Datas, interval=1, reliable_num=10) -> Result:
         """
         识别叶绿体运动速率
         :param datas:
@@ -212,6 +216,19 @@ class CytoplasmicCirculationSpeedMeasure:
                       + list(info[:2] if len(info) == 2 else info[:1] + [0])
                       + [index + 1, result[3]])
 
+    def assess(self):
+        chloroplasts: Dict[int, int] = {}
+        all_ = 0
+        for i in self.stream:  # 统计每个叶绿体识别到了多少
+            for id_, post in i.items():
+                try:
+                    chloroplasts[id_] += 1
+                except KeyError:
+                    chloroplasts[id_] = 1
+        for k, v in chloroplasts.items():
+            all_ += v
+        print(all_ / len(chloroplasts))
+
     def load(self, file):
         """
         加载保存在.txt文件中的叶绿体坐标数据
@@ -249,6 +266,8 @@ class CytoplasmicCirculationSpeedMeasure:
             video.load(operation['加载'])
         if '数据库' in operation:
             video.database(operation['数据库']['分段'], operation['数据库']['分析间隔'], operation['数据库']['表格'])
+        if '评估' in operation:
+            video.assess()
         if '输出' in operation:
             return video.output(operation['输出']['分段'], operation['输出']['分析间隔'])
 

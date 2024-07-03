@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="BiologyTools",
-    version="0.0.7",
+    version="0.1.0",
     author="CrossDark",
     author_email="liuhanbo333@icloud.com",
     description="CrossDark's biology tool",
@@ -22,7 +22,8 @@ setuptools.setup(
     ],
     entry_points={
         'console_scripts': [
-            'Biology-Video=Biology.Video.yolo:main'
+            'Biology-Video=Biology.Video.yolo:main',
+            'BiologyTools=BiologyTools.define.Info.print'
         ],
     },
     classifiers=[
@@ -32,6 +33,6 @@ setuptools.setup(
         "Operating System :: OS Independent"
     ],
     package_data={
-        'BiologyTools': ['model/*'],  # 替换为你的包名和静态文件路径
+        'BiologyTools': ['model/*'],  # 静态文件
     },
 )
