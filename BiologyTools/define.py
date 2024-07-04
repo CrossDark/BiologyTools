@@ -3,15 +3,6 @@ from numpy import typing as ntype
 import numpy
 
 
-class Info:
-    """
-    ^^^^^^^
-    """
-    @classmethod
-    def print(cls):
-        print(cls.__doc__)
-
-
 Datas = List[Dict[int, Tuple[float, float, float, float]]]
 Setups = Dict[str, Union[list, str, Dict[str, Union[int, str, Dict[str, Union[str, int]]]], int]]
 Record = List[List[Union[float, str, int]]]

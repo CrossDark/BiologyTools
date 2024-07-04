@@ -1,4 +1,3 @@
-from itertools import cycle
 from moviepy.editor import ImageSequenceClip
 from ultralytics import YOLO
 from .tools import SQL
@@ -23,6 +22,7 @@ class Measure:
     ):
         self.lost = 0
         self.stream: Datas = []
+        self.path = path
         self.cache = cache
         self.video = av.open(path)
         self.final: str = ''
@@ -44,7 +44,7 @@ class Measure:
         return '叶绿体坐标识别'
 
     def __getattr__(self, item) -> Callable:
-        print(colorama.Fore.RED + '我没做这个功能,要不然你自己做???' + colorama.Fore.RESET)
+        print(colorama.Fore.RED + f'我没做{item}这个功能,要不然你自己做???' + colorama.Fore.RESET)
         return lambda: '什么鬼?'
 
     def split_flame(self, sampling_rate: int = 1):
@@ -169,7 +169,7 @@ class Analise:
 
     def flame(self, interval=1, reliable_num=10) -> Result:
         """
-        识别叶绿体运动速率
+        识别每帧的叶绿体运动速率
         :param interval:
         :param reliable_num:
         :return:
@@ -196,7 +196,7 @@ class Analise:
             standard_deviation.append(numpy.std(numpy.array(distance)))
         return distances, numpy.std(numpy.array(standard_deviation)), reliable, lost
 
-    def chloroplast(self):
+    def chloroplast(self) -> Chloroplasts:
         """
         输出每个叶绿体的运动轨迹
         :return:
@@ -214,8 +214,9 @@ class Analise:
 
 class Exec:
     @classmethod
-    def exec(cls, operations: Setups):
+    def exec(cls, operations: Setups) -> tuple:
         datas: Union[str, Datas, None] = None
+        result = []
         if '识别' in operations:
             with Measure(path=operations['识别']['文件']) as posts:
                 datas = posts
@@ -224,9 +225,10 @@ class Exec:
                 datas = operations['分析']['数据']
             analise = Analise(datas)
             if '逐帧' in operations['分析']:
-                return analise.flame(interval=operations['分析']['逐帧']['间隔'])
+                result.append(analise.flame(interval=operations['分析']['逐帧']))
             if '追踪' in operations['分析']:
-                return analise.chloroplast()
+                result.append(analise.chloroplast())
+        return tuple(result)
 
     @classmethod
     def yaml(cls, setup: str) -> Record:

@@ -6,3 +6,4 @@ ultralytics>=8.2.42
 colorama>=0.4.6
 setuptools>=70.1.1
 matplotlib~=3.8.2
+scikit-learn~=1.4.0
