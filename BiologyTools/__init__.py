@@ -1,3 +1,6 @@
+"""
+
+"""
 from itertools import cycle
 from moviepy.editor import ImageSequenceClip
 from ultralytics import YOLO

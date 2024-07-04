@@ -11,7 +11,6 @@ import av
 import os
 import glob
 import math
-import copy
 import ruamel.yaml
 import re
 
@@ -22,15 +21,11 @@ class Measure:
             model: str = os.path.join(base_path, 'model/不错.pt'),
             output: Union[str, bool] = 'output.txt'
     ):
-        self.value = 0
         self.lost = 0
         self.stream: Datas = []
-        self.image_paths = []
-        self.path = path
         self.cache = cache
         self.video = av.open(path)
         self.final: str = ''
-        self.out = []
         self.interval = interval  # 两个保留的帧的间隔
         self.model = model  # yolo模型路径
         self.safe_path = output  # 输出的坐标文件路径
@@ -44,6 +39,13 @@ class Measure:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.clean()
+
+    def __repr__(self):
+        return '叶绿体坐标识别'
+
+    def __getattr__(self, item) -> Callable:
+        print(colorama.Fore.RED + '我没做这个功能,要不然你自己做???' + colorama.Fore.RESET)
+        return lambda: '什么鬼?'
 
     def split_flame(self, sampling_rate: int = 1):
         """
@@ -141,6 +143,13 @@ class Analise:
         else:
             self.stream = stream
 
+    def __repr__(self):
+        return '胞质环流速率识别'
+
+    def __getattr__(self, item) -> Callable:
+        print(colorama.Fore.RED + '我没做这个功能,要不然你自己做???' + colorama.Fore.RESET)
+        return lambda: '什么鬼?'
+
     def load(self, file):
         """
         加载保存在.txt文件中的叶绿体坐标数据
@@ -158,20 +167,18 @@ class Analise:
                     posts[int(post_[0])] = tuple([float(i) for i in post_[1].split('-')])
                 self.stream.append(posts)
 
-    @staticmethod
-    def flame(datas: Datas, interval=1, reliable_num=10) -> Result:
+    def flame(self, interval=1, reliable_num=10) -> Result:
         """
         识别叶绿体运动速率
-        :param datas:
         :param interval:
         :param reliable_num:
         :return:
         """
-        distances = []  # 存储每帧的平均距离
+        distances: List[float] = []  # 存储每帧的平均距离
         standard_deviation = []  # 存储每帧方差
         reliable = True  # 结果是否可靠
         lost = 0
-        for index, value in enumerate(zip(datas, datas[1:])):  # 逐帧遍历视频(数据)
+        for index, value in enumerate(zip(self.stream, self.stream[1:])):  # 逐帧遍历视频(数据)
             if index % interval != 0:  # 不是要处理的帧,跳过
                 continue
             last, now = value  # 获得上一帧与当前帧
@@ -187,27 +194,7 @@ class Analise:
                 reliable = False
             distances.append(sum(distance) / len(distance))
             standard_deviation.append(numpy.std(numpy.array(distance)))
-        return sum(distances) / len(distances), numpy.std(numpy.array(standard_deviation)), reliable, lost
-
-    def flames(self, spread: int, interval: int) -> Record:
-        """
-        分段计算每帧间的速率与其它相关信息并输出至目标文件
-        :param spread:
-        :param interval:
-        :return:
-        """
-        out = []
-        part = len(self.stream) / spread
-        part1 = cycle([math.floor(part), math.ceil(part)])
-        part2 = copy.deepcopy(part1)
-        for index, k in enumerate([self.stream[i:i + next(part2)] for i in range(0, len(self.stream), next(part1))]):
-            try:
-                result = self.flame(k, interval)
-            except ZeroDivisionError:
-                continue
-            out.append([result[0]] + [index + 1, result[3]])
-        self.out = out
-        return out
+        return distances, numpy.std(numpy.array(standard_deviation)), reliable, lost
 
     def chloroplast(self):
         """
@@ -237,7 +224,7 @@ class Exec:
                 datas = operations['分析']['数据']
             analise = Analise(datas)
             if '逐帧' in operations['分析']:
-                return analise.flames(spread=operations['分析']['逐帧']['分段'], interval=operations['分析']['逐帧']['间隔'])
+                return analise.flame(interval=operations['分析']['逐帧']['间隔'])
             if '追踪' in operations['分析']:
                 return analise.chloroplast()
 
