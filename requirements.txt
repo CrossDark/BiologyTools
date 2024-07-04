@@ -7,3 +7,5 @@ colorama>=0.4.6
 setuptools>=70.1.1
 matplotlib~=3.8.2
 scikit-learn~=1.4.0
+pandas~=2.2.2
+python-magic~=0.4.27

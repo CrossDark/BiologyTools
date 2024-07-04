@@ -2,8 +2,7 @@ from moviepy.editor import ImageSequenceClip
 from ultralytics import YOLO
 from .tools import SQL
 from typing import List, Dict, Tuple, Union, Callable
-from .define import Datas, Setups, Record, Result, Chloroplasts
-from . import base_path
+from . import base_path, Datas, Setups, Record, Result, Chloroplasts
 import colorama
 import numpy
 import av
@@ -12,9 +11,13 @@ import glob
 import math
 import ruamel.yaml
 import re
+import magic
 
 
 class Measure:
+    """
+    识别视频中叶绿体的坐标
+    """
     def __init__(
             self, path: str, cache: str = os.path.join(base_path, 'cache/'), interval: int = 1,
             model: str = os.path.join(base_path, 'model/不错.pt'),
@@ -114,6 +117,7 @@ class Measure:
         :return:
         """
         with open(path, 'w', encoding='utf-8') as file:
+            file.write('BiologyTools.CytoplasmicCirculation\n')
             for flame in self.stream:
                 for id_, block in flame.items():
                     file.write(f'{id_}:{block[0]}-{block[1]}-{block[2]}-{block[3]}  ')
@@ -158,14 +162,16 @@ class Analise:
         """
         with open(file, 'r') as datas:
             self.stream = []
-            for flame in datas:
-                posts = {}
-                for post in flame.split('  '):
-                    post_ = post.split(':')
-                    if post_[0] == '\n':
-                        continue
-                    posts[int(post_[0])] = tuple([float(i) for i in post_[1].split('-')])
-                self.stream.append(posts)
+            data = datas.readlines()
+            if data[0] == 'BiologyTools.CytoplasmicCirculation\n':
+                for flame in data[1:]:
+                    posts = {}
+                    for post in flame.split('  '):
+                        post_ = post.split(':')
+                        if post_[0] == '\n':
+                            continue
+                        posts[int(post_[0])] = tuple([float(i) for i in post_[1].split('-')])
+                    self.stream.append(posts)
 
     def flame(self, interval=1, reliable_num=10) -> Result:
         """
@@ -213,21 +219,32 @@ class Analise:
 
 
 class Exec:
+    """
+    全流程
+    """
     @classmethod
-    def exec(cls, operations: Setups) -> tuple:
-        datas: Union[str, Datas, None] = None
+    def exec(cls, file: Union[str, Datas], operations: Setups) -> tuple:
+        """
+        一整套叶绿体胞质环流速率的识别
+        :param file:
+        :param operations:
+        :return:
+        """
+        datas: Union[str, Datas, None]
         result = []
-        if '识别' in operations:
-            with Measure(path=operations['识别']['文件']) as posts:
-                datas = posts
-        if '分析' in operations:
-            if '数据' in operations['分析']:
-                datas = operations['分析']['数据']
-            analise = Analise(datas)
-            if '逐帧' in operations['分析']:
-                result.append(analise.flame(interval=operations['分析']['逐帧']))
-            if '追踪' in operations['分析']:
-                result.append(analise.chloroplast())
+        if isinstance(file, str):
+            if magic.Magic(mime=True).from_file(file).startswith('video/'):  # 判断文件是否为视频
+                with Measure(path=file) as posts:  # 先识别叶绿体坐标
+                    datas = posts
+            else:  # 由Analise加载坐标文件
+                datas = file
+        else:
+            raise TypeError('要么输入坐标,要么输入视频')
+        analise = Analise(datas)
+        if '逐帧' in operations:
+            result.append(analise.flame(interval=operations['逐帧']))
+        if '追踪' in operations:
+            result.append(analise.chloroplast())
         return tuple(result)
 
     @classmethod
@@ -241,7 +258,7 @@ class Exec:
             setups = ruamel.yaml.YAML(typ='safe').load(re.sub('<[^>]*>', '', file.read()))
         out = []
         for path in setups['文件']:
-            get = cls.exec(operations=setups)
+            get = cls.exec(file=path, operations=setups)
             if get is not None:
                 out += get
         return out
