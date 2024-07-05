@@ -3,8 +3,10 @@
 目前提供
 """
 from typing import List, Dict, Tuple, Union
+from numpy.typing import NDArray
 import pandas
 import pathlib
+import numpy as np
 
 __all__ = ['base_path', 'info', 'Datas', 'Setups', 'Record', 'Result', 'Chloroplasts']
 
@@ -18,3 +20,4 @@ Setups = Dict[str, Union[list, str, Dict[str, Union[int, str, Dict[str, Union[st
 Record = List[List[Union[float, str, int]]]
 Result = Tuple[List[float], float, bool, int]
 Chloroplasts = Dict[int, Union[pandas, Dict[int, Tuple[float, float]]]]
+Maps = Union[List[List[Tuple[float, float]]], NDArray[np.float64]]

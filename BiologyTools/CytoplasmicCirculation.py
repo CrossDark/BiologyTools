@@ -2,7 +2,7 @@ from moviepy.editor import ImageSequenceClip
 from ultralytics import YOLO
 from .tools import SQL
 from typing import List, Dict, Tuple, Union, Callable
-from . import base_path, Datas, Setups, Record, Result, Chloroplasts
+from . import base_path, Datas, Setups, Record, Result, Chloroplasts, Maps
 import colorama
 import numpy
 import av
@@ -12,6 +12,8 @@ import math
 import ruamel.yaml
 import re
 import magic
+import copy
+import openpyxl
 
 
 class Measure:
@@ -146,6 +148,7 @@ class Analise:
             self.load(stream)
         else:
             self.stream = stream
+        self.flame_num = len(self.stream)
 
     def __repr__(self):
         return '胞质环流速率识别'
@@ -218,6 +221,44 @@ class Analise:
         return chloroplasts
 
 
+class Map:
+    """
+    将叶绿体坐标存储到一个ID*帧数的numpy数组中
+    """
+    def __init__(self, data: Chloroplasts, flame: int):
+        chloroplasts: Maps = []
+        base: List[Tuple[Union[int, float], Union[int, float]]] = [(i, 0) for i in range(1, flame + 1)]  # 默认的行(1~最后一帧)
+        for k, v in data.items():
+            customized = copy.copy(base)
+            for flame, post in v.items():
+                customized[flame] = post
+            chloroplasts.append(customized)
+        self.map: Maps = numpy.array(chloroplasts)
+
+    def __call__(self, *args, **kwargs) -> Maps:
+        return self.map
+
+    def __str__(self):
+        str_ = ''
+        for i in self.map:
+            for x in i:
+                str_ += f'{x[0]}-{x[1]}  '
+            str_ += '\n'
+        return str_
+
+    def xlsx(self):
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = '原始数据'
+        for i in self.map:
+            row = []
+            for x in i:
+                row.append(f'{x[0]:.4f}-{x[1]:.4f}' if x[1] != 0.0 else '--')
+            ws.append(row)
+        # TOD-O: 支持更多的文件路径
+        wb.save('/Users/crossdark/Downloads/effefe.xlsx')
+
+
 class Exec:
     """
     全流程
@@ -245,6 +286,15 @@ class Exec:
             result.append(analise.flame(interval=operations['逐帧']))
         if '追踪' in operations:
             result.append(analise.chloroplast())
+        if '制表' in operations:
+            map_ = Map(analise.chloroplast(), analise.flame_num)
+            if operations['制表'] == 'numpy':
+                result.append(map_())
+            if operations['制表'] == '字符串':
+                result.append(str(map_))
+            if operations['制表'] == 'xlsx':
+                map_.xlsx()
+                result.append('见.xlsx文件')
         return tuple(result)
 
     @classmethod
