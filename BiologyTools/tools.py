@@ -1,9 +1,24 @@
+import platform
+import re
+
 import colorama
 import numpy
 import pymysql
 from .define import Record
 import matplotlib.pyplot as plt
 from sklearn.linear_model import LinearRegression
+
+
+class Tools:
+    @classmethod
+    def is_path(cls, path: str):
+        if platform.system() == 'Windows':
+            pattern = r'^[A-Za-z]:\\(?:[^\\/:*?"<>|\r\n]+\\)*[^\\/:*?"<>|\r\n]*$'  # Windows路径
+        elif platform.system() == 'Darwin':
+            pattern = r'|^/(?:[^/\\:*?"<>|\r\n]+/)*[^/\\:*?"<>|\r\n]*$'  # Unix/Linux路径
+        else:
+            raise SystemError('什么鬼系统?')
+        return bool(re.match(pattern, path))
 
 
 class SQL:

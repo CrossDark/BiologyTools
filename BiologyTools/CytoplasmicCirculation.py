@@ -1,6 +1,6 @@
 from moviepy.editor import ImageSequenceClip
 from ultralytics import YOLO
-from .tools import SQL
+from .tools import SQL, Tools
 from typing import List, Dict, Tuple, Union, Callable
 from . import base_path, Datas, Setups, Record, Result, Chloroplasts, Maps
 import colorama
@@ -246,7 +246,7 @@ class Map:
             str_ += '\n'
         return str_
 
-    def xlsx(self):
+    def xlsx(self, path):
         wb = openpyxl.Workbook()
         ws = wb.active
         ws.title = '原始数据'
@@ -255,8 +255,7 @@ class Map:
             for x in i:
                 row.append(f'{x[0]:.4f}-{x[1]:.4f}' if x[1] != 0.0 else '--')
             ws.append(row)
-        # TOD-O: 支持更多的文件路径
-        wb.save('/Users/crossdark/Downloads/effefe.xlsx')
+        wb.save(path)
 
 
 class Exec:
@@ -292,8 +291,8 @@ class Exec:
                 result.append(map_())
             if operations['制表'] == '字符串':
                 result.append(str(map_))
-            if operations['制表'] == 'xlsx':
-                map_.xlsx()
+            if Tools.is_path(operations['制表']):
+                map_.xlsx(operations['制表'])
                 result.append('见.xlsx文件')
         return tuple(result)
 
