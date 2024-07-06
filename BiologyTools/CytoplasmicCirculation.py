@@ -1,7 +1,7 @@
 from moviepy.editor import ImageSequenceClip
 from ultralytics import YOLO
-from .tools import SQL, Tools
-from typing import List, Dict, Tuple, Union, Callable
+from .tools import Tools
+from typing import *
 from . import base_path, Datas, Setups, Record, Result, Chloroplasts, Maps
 import colorama
 import numpy
@@ -40,7 +40,7 @@ class Measure:
         self.generate_video()
         self.yolo(model=self.model)
         self.save(self.safe_path)
-        return self.stream
+        return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.clean()
@@ -96,9 +96,8 @@ class Measure:
             chloroplast = {}
             # 将ID与坐标转换成一个字典
             try:  # 看看有没有哪帧识别不到
-                for id_ in i.boxes.id.tolist():
-                    for post in i.boxes.xyxy.tolist():
-                        chloroplast[int(id_)] = tuple(post)
+                for id_, post in zip(i.boxes.id.tolist(), i.boxes.xyxy.tolist()):
+                    chloroplast[int(id_)] = tuple(post)
             except AttributeError:  # 数据可以作废了
                 lost += 1
             output_.append(chloroplast)
@@ -275,7 +274,9 @@ class Exec:
         if isinstance(file, str):
             if magic.Magic(mime=True).from_file(file).startswith('video/'):  # 判断文件是否为视频
                 with Measure(path=file) as posts:  # 先识别叶绿体坐标
-                    datas = posts
+                    datas = posts.stream
+                    if '保存' in operations:
+                        posts.save(operations['保存'])
             else:  # 由Analise加载坐标文件
                 datas = file
         else:
