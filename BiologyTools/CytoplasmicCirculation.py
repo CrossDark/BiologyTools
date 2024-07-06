@@ -39,7 +39,6 @@ class Measure:
         self.split_flame(self.interval)
         self.generate_video()
         self.yolo(model=self.model)
-        self.save(self.safe_path)
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):

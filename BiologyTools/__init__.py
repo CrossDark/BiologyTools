@@ -17,7 +17,7 @@ info = __doc__
 
 Datas = List[Dict[int, Tuple[float, float, float, float]]]
 Setups = Dict[str, Union[list, str, Dict[str, Union[int, str, Dict[str, Union[str, int]]]], int]]
-Record = List[List[Union[float, str, int]]]
+Record = List[List[Union[float, str, int, List]]]
 Result = Tuple[List[float], float, bool, int]
 Chloroplasts = Dict[int, Union[pandas, Dict[int, Tuple[float, float]]]]
 Maps = Union[List[List[Tuple[float, float]]], NDArray[np.float64]]

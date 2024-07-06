@@ -1,10 +1,11 @@
 import platform
 import re
-
+from typing import *
 import colorama
 import numpy
+import pandas
 import pymysql
-from .define import Record
+from . import Record
 import matplotlib.pyplot as plt
 from sklearn.linear_model import LinearRegression
 
@@ -98,19 +99,28 @@ class Output:
             )
 
     @staticmethod
-    def chart(data: Record):
+    def chart(data: List[float]):
         """
         将数据绘制成图像并拟合趋势
         :param data:
         :return:
         """
+        print(data)
         numpy.random.seed(0)  # 为了示例的可重复性
         # 创建坐标列表
-        x = numpy.array([i[3] for i in data])  # 横坐标(分段)
-        y = numpy.array([i[0] for i in data])  # 枞坐标(速率)
+        x = numpy.array([i for i in range(1, len(data) + 1)])  # 横坐标(分段)
+        y = numpy.array(data)  # 枞坐标(速率)
+        # 计算标准差
+        std_dev = numpy.std(y)
+        print(f"数据的标准差为: {std_dev}")
         # 将x和y的numpy数组转换为二维数组
         x_2d = x.reshape(-1, 1)
         y_2d = y.reshape(-1, 1)
+        # 将数据转换为DataFrame
+        df = pandas.DataFrame(data, columns=['Value'])
+        # 计算滚动标准差，窗口大小为10
+        window_size = 10
+        rolling_std = df['Value'].rolling(window=window_size).std()
         # 使用线性回归模型拟合数据
         model = LinearRegression()
         model.fit(x_2d, y_2d)
@@ -120,9 +130,11 @@ class Output:
         # 绘制数据点和趋势线
         plt.scatter(x, y, color='blue', label='Data Point')
         plt.plot(x_line, y_line, color='red', linewidth=3, label='Trend Line')
+        plt.plot(rolling_std.index, rolling_std, color='orange',
+                 label='Std (Window Size: {})'.format(window_size))
         # 添加标题和坐标轴标签
-        plt.title(f'{data[0][1]}-{data[0][2]}')
+        """plt.title(f'{data[0][1]}-{data[0][2]}')
         plt.xlabel('分段')
-        plt.ylabel('速率')
+        plt.ylabel('速率')"""
         plt.legend()
         plt.show()
