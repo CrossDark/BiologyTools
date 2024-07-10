@@ -1,3 +1,5 @@
+import time
+
 from moviepy.editor import ImageSequenceClip
 from ultralytics import YOLO
 from .tools import Tools
@@ -22,7 +24,7 @@ class Measure:
     """
     def __init__(
             self, path: str, cache: str = os.path.join(base_path, 'cache/'), interval: int = 1,
-            model: str = os.path.join(base_path, 'model/不错.pt'),
+            model: str = os.path.join(base_path, 'model/优秀.pt'),
             output: Union[str, bool] = 'output.txt'
     ):
         self.lost = 0
@@ -107,20 +109,22 @@ class Measure:
         """
         保存识别的叶绿体坐标:
         格式:
-            ID:X1-Y1-X2-Y2  ……
+            ID:X1~Y1~X2~Y2  ……
             ……
         例如:
-            0:0.0-0.0-3.0-0.0  1:0.0-0.0-0.0-0.0
-            0:1.0-1.0-4.0-0.0  1:1.0-1.0-1.0-1.0
-            0:3.0-3.0-5.0-0.0  1:3.0-3.0-3.0-3.0
+            0:0.0~0.0~3.0~0.0  1:0.0~0.0~0.0~0.0
+            0:1.0~1.0~4.0~0.0  1:1.0~1.0~1.0~1.0
+            0:3.0~3.0~5.0~0.0  1:3.0~3.0~3.0~3.0
         :param path:
         :return:
         """
         with open(path, 'w', encoding='utf-8') as file:
-            file.write('BiologyTools.CytoplasmicCirculation\n')
+            file.write(
+                f'BiologyTools.CytoplasmicCirculation  <{datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}>\n'
+            )
             for flame in self.stream:
                 for id_, block in flame.items():
-                    file.write(f'{id_}:{block[0]}-{block[1]}-{block[2]}-{block[3]}  ')
+                    file.write(f'{id_}:{block[0]}~{block[1]}~{block[2]}~{block[3]}  ')
                 file.write('\n')
 
     def clean(self):
@@ -164,14 +168,14 @@ class Analise:
         with open(file, 'r') as datas:
             self.stream = []
             data = datas.readlines()
-            if data[0] == 'BiologyTools.CytoplasmicCirculation\n':
+            if data[0].startswith('BiologyTools.CytoplasmicCirculation'):
                 for flame in data[1:]:
                     posts = {}
                     for post in flame.split('  '):
                         post_ = post.split(':')
                         if post_[0] == '\n':
                             continue
-                        posts[int(post_[0])] = tuple([float(i) for i in post_[1].split('-')])
+                        posts[int(post_[0])] = tuple([float(i) for i in post_[1].split('~')])  # 有可能会出现科学计数法
                     self.stream.append(posts)
 
     def flame(self, interval=1, reliable_num=10) -> Result:
@@ -199,6 +203,7 @@ class Analise:
                     lost += 1
             if len(distance) <= reliable_num:  # 结果不可靠,发出提示
                 reliable = False
+                print(colorama.Fore.RED + f'叶绿体移动距离为{len(distance)}, 结果不可靠' + colorama.Fore.RESET)
             distances.append(sum(distance) / len(distance))
             standard_deviation.append(numpy.std(numpy.array(distance)))
         return distances, numpy.std(numpy.array(standard_deviation)), reliable, lost

@@ -99,13 +99,25 @@ class Output:
             )
 
     @staticmethod
-    def chart(data: List[float]):
+    def moving_average(data, window_size):
+        """
+        计算移动平均
+        :param data: 输入的数据列表
+        :param window_size: 窗口大小
+        :return: 平滑后的数据列表
+        """
+        if window_size > len(data):
+            raise ValueError("窗口大小必须小于数据长度")
+        # 使用列表推导式计算移动平均
+        return [sum(data[i:i + window_size]) / window_size for i in range(len(data) - window_size + 1)]
+
+    @classmethod
+    def chart(cls, data: List[float]):
         """
         将数据绘制成图像并拟合趋势
         :param data:
         :return:
         """
-        print(data)
         numpy.random.seed(0)  # 为了示例的可重复性
         # 创建坐标列表
         x = numpy.array([i for i in range(1, len(data) + 1)])  # 横坐标(分段)
@@ -127,11 +139,16 @@ class Output:
         # 使用模型预测x值的y值，以绘制趋势线
         x_line = numpy.array([[0], [len(data)]])  # 选择一个x值的范围来绘制趋势线
         y_line = model.predict(x_line)
+        # 生成平滑后的数据
+        smooth_10 = cls.moving_average(data, 10)
+        smooth_50 = cls.moving_average(data, 50)
         # 绘制数据点和趋势线
-        plt.scatter(x, y, color='blue', label='Data Point')
+        # plt.scatter(x, y, color='blue', label='Data Point')
         plt.plot(x_line, y_line, color='red', linewidth=3, label='Trend Line')
         plt.plot(rolling_std.index, rolling_std, color='orange',
                  label='Std (Window Size: {})'.format(window_size))
+        plt.plot([i for i in range(1, len(smooth_10) + 1)], smooth_10, color='green', linewidth=3, label='Smooth 10')
+        plt.plot([i for i in range(1, len(smooth_50) + 1)], smooth_50, color='pink', linewidth=3, label='Smooth 50')
         # 添加标题和坐标轴标签
         """plt.title(f'{data[0][1]}-{data[0][2]}')
         plt.xlabel('分段')
